@@ -40,7 +40,7 @@ class StarSpace(nn.Module):
         self.k_neg = k_neg
         
         if input_embedding is None:
-            self.embeddings = nn.Embedding(n_input, d_embed, max_norm=max_norm)
+            self.embeddings = nn.Embedding(self.n_input, d_embed, max_norm=max_norm)
         else:
             self.embeddings = input_embedding
             

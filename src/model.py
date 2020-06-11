@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 import torch.nn.functional as F
 
@@ -31,17 +32,16 @@ class InnerProductSimilarity(nn.Module):
 
 
 class StarSpace(nn.Module):
-    def __init__(self, d_embed, vocabulary, n_input, similarity, max_norm=10, aggregate=torch.sum):
+    def __init__(self, d_embed, vocabulary, n_input, k_neg = 3, max_norm=20):
         super(StarSpace, self).__init__()
 
         self.n_input = n_input
-        self.similarity = similarity
-        self.aggregate = aggregate
         self.vocab = vocabulary
+        self.k_neg = k_neg
         
         self.input_embedding = nn.Embedding(n_input, d_embed, max_norm=max_norm)
 
-    def embed_doc(d,normalize=False):
+    def embed_doc(self,d,normalize=False):
         positions = []
         for t in d:
             try:
@@ -53,14 +53,14 @@ class StarSpace(nn.Module):
             output = output / output.norm()
         return output
     
-    def forward(self, docs):
+    def forward(self, docs):       
         l_batch = []
         r_batch = []
         neg_batch = []
         
         for i in range(len(docs)):
             #Positive similarity
-            s = docs.values[i].split('\t') #sentences
+            s = docs[i].split('\t') #sentences
             if type(s) == str: #only one sentence in s
                 a = s
                 b = s
@@ -70,22 +70,22 @@ class StarSpace(nn.Module):
             a = a.split()
             b = b.split()
 
-            a_emb = embed_doc(a)
-            b_emb = embed_doc(b)
+            a_emb = self.embed_doc(a)
+            b_emb = self.embed_doc(b)
 
             l_batch.append(a_emb)
             r_batch.append(b_emb)
 
             #Negative similarity
             negs = []
-            for _i in range(k * 3):
-                index = np.random.choice(len(batch))
+            for _i in range(self.k_neg * 3):
+                index = np.random.choice(len(docs))
                 if not index == i: #if it's not from the same document
-                    c = batch.values[index].split('\t')
+                    c = docs[index].split('\t')
                     c = np.random.choice(c, 1)[0].split()
-                    c_emb = embed_doc(c,train_vocab,input_embedding,normalize=True)
+                    c_emb = self.embed_doc(c, normalize=True)
                     negs.append(c_emb)
-                    if(len(negs) >= k):
+                    if(len(negs) >= self.k_neg):
                         break
 
             neg_batch.append(torch.stack(negs))

@@ -32,15 +32,18 @@ class InnerProductSimilarity(nn.Module):
 
 
 class StarSpace(nn.Module):
-    def __init__(self, d_embed, vocabulary, n_input, k_neg = 3, max_norm=20):
+    def __init__(self, d_embed, vocabulary, input_embedding = None, k_neg = 3, max_norm=20):
         super(StarSpace, self).__init__()
 
-        self.n_input = n_input
+        self.n_input = len(vocabulary)
         self.vocab = vocabulary
         self.k_neg = k_neg
         
-        self.input_embedding = nn.Embedding(n_input, d_embed, max_norm=max_norm)
-
+        if input_embedding is None:
+            self.embeddings = nn.Embedding(n_input, d_embed, max_norm=max_norm)
+        else:
+            self.embeddings = input_embedding
+            
     def embed_doc(self,d,normalize=False):
         positions = []
         for t in d:
@@ -48,7 +51,7 @@ class StarSpace(nn.Module):
                 positions.append(self.vocab[t])
             except KeyError:
                 pass
-        output = torch.sum(self.input_embedding(torch.LongTensor(positions)),dim=0)
+        output = torch.sum(self.embeddings(torch.LongTensor(positions)),dim=0)
         if normalize:
             output = output / output.norm()
         return output
@@ -100,34 +103,34 @@ class StarSpace(nn.Module):
         return l_batch, r_batch, neg_batch
     
 
-class StarSpace_old(nn.Module):
-    def __init__(self, d_embed, n_input, n_output, similarity, max_norm=10, aggregate=torch.sum):
-        super(StarSpace, self).__init__()
+# class StarSpace_old(nn.Module):
+#     def __init__(self, d_embed, n_input, n_output, similarity, max_norm=10, aggregate=torch.sum):
+#         super(StarSpace, self).__init__()
 
-        self.n_input = n_input
-        self.n_output = n_output
-        self.similarity = similarity
-        self.aggregate = aggregate
+#         self.n_input = n_input
+#         self.n_output = n_output
+#         self.similarity = similarity
+#         self.aggregate = aggregate
         
-        self.input_embedding = nn.Embedding(n_input, d_embed, max_norm=max_norm)
-        self.output_embedding = nn.Embedding(n_output, d_embed, max_norm=max_norm)
+#         self.input_embedding = nn.Embedding(n_input, d_embed, max_norm=max_norm)
+#         self.output_embedding = nn.Embedding(n_output, d_embed, max_norm=max_norm)
 
-    def forward(self, input=None, output=None):
-        input_repr, output_repr = None, None
+#     def forward(self, input=None, output=None):
+#         input_repr, output_repr = None, None
         
-        if input is not None:
+#         if input is not None:
             
-            if input.dim() == 1:
-                input = input.unsqueeze(-1)
+#             if input.dim() == 1:
+#                 input = input.unsqueeze(-1)
 
-            input_emb = self.input_embedding(input)  # B x L_i x dim
-            input_repr = self.aggregate(input_emb, dim=1)  # B x dim
+#             input_emb = self.input_embedding(input)  # B x L_i x dim
+#             input_repr = self.aggregate(input_emb, dim=1)  # B x dim
         
-        if output is not None:
-            if output.dim() == 1:
-                output = output.unsqueeze(-1)  # B x L_o
+#         if output is not None:
+#             if output.dim() == 1:
+#                 output = output.unsqueeze(-1)  # B x L_o
 
-            output_emb = self.output_embedding(output)  # B x L_o x dim
-            output_repr = self.aggregate(output_emb, dim=1)  # B x dim
+#             output_emb = self.output_embedding(output)  # B x L_o x dim
+#             output_repr = self.aggregate(output_emb, dim=1)  # B x dim
         
-        return input_repr, output_repr
+#         return input_repr, output_repr

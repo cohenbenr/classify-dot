@@ -52,6 +52,8 @@ class StarSpace(nn.Module):
             except KeyError:
                 pass
         output = torch.sum(self.embeddings(torch.LongTensor(positions)),dim=0)
+        output[output != output] = 0 #necessary for documents with all unseen vocabs
+        
         if normalize:
             output = output / output.norm()
         return output

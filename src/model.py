@@ -83,15 +83,15 @@ class StarSpace(nn.Module):
 
             #Negative similarity
             negs = []
-            for _i in range(self.k_neg * 3):
+            while len(negs) < self.k_neg:
                 index = np.random.choice(len(docs))
-                if not index == i: #if it's not from the same document
+                
+                if index != i: #if it's not from the same document
                     c = docs[index].split('\t')
                     c = np.random.choice(c, 1)[0].split()
-                    c_emb = self.embed_doc(c, normalize=True)
+                    #c_emb = self.embed_doc(c, normalize=True)
+                    c_emb = self.embed_doc(c)
                     negs.append(c_emb)
-                    if(len(negs) >= self.k_neg):
-                        break
 
             neg_batch.append(torch.stack(negs))
         

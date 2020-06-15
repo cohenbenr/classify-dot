@@ -8,11 +8,19 @@ from embed_software.preprocess import claims_processor, readme_processor, Prepro
 import json
 from toolz import dissoc
 
+from gcsfs import GCSFileSystem
 
 
-def get_indeed_texts(path, **kwargs):
+def get_indeed_texts(path, use_gcs = False, **kwargs):
     """Reads csv with indeed data that turns into test set"""
-    indeed = pd.read_csv(path, **kwargs)
+    if use_gcs:
+        fs = GCSFileSystem(project='labor-market-data')
+        path = path.replace('..','lmd-classify-dot',1)
+        with fs.open(path) as f:
+            indeed = pd.read_csv(f, **kwargs)
+    else:
+        indeed = pd.read_csv(path, **kwargs)
+
     indeed['title'] = indeed.title.str.lower()
     return indeed
 
@@ -63,7 +71,7 @@ def make_matcher():
 
 def indeed_test_data(texts, lim, soc_n):
     """Make test data from indeed (pre-embedded)"""
-    indeed = get_indeed_texts(texts, nrows=lim)
+    indeed = get_indeed_texts(texts, use_gcs=True, nrows=lim)
     matcher = make_matcher()
     matches = matcher(indeed.reset_index()).set_index('index')
     return matches.content, get_soc_n(matches.code, soc_n), matches.index

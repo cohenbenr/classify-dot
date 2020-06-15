@@ -66,9 +66,9 @@ class StarSpace(nn.Module):
         for i in range(len(docs)):
             #Positive similarity
             s = docs[i].split('\t') #sentences
-            if type(s) == str: #only one sentence in s
-                a = s
-                b = s
+            if (type(s) == str) or (len(s) <= 1): #only one sentence in s
+                a = s[0]
+                b = s[0]
             else:
                 a, b = np.random.choice(s, 2, False)
 

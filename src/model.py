@@ -4,33 +4,6 @@ import torch.nn.functional as F
 
 from torch import nn
 
-class MarginRankingLoss(nn.Module):
-    def __init__(self, margin=1., aggregate=torch.mean):
-        super(MarginRankingLoss, self).__init__()
-        self.margin = margin
-        self.aggregate = aggregate
-
-    def forward(self, positive_similarity, negative_similarity):
-        return self.aggregate(
-            torch.clamp(self.margin - positive_similarity + negative_similarity, min=0))
-    
-
-class InnerProductSimilarity(nn.Module):
-    def __init__(self):
-        super(InnerProductSimilarity, self).__init__()
-
-    def forward(self, a, b):
-        # a => B x [n_a x] dim, b => B x [n_b x] dim
-
-        if a.dim() == 2:
-            a = a.unsqueeze(1)  # B x n_a x dim
-
-        if b.dim() == 2:
-            b = b.unsqueeze(1)  # B x n_b x dim
-
-        return torch.bmm(a, b.transpose(2, 1))  # B x n_a x n_b
-
-
 class StarSpace(nn.Module):
     def __init__(self, d_embed, vocabulary, input_embedding = None, k_neg = 3, max_norm=20):
         super(StarSpace, self).__init__()
@@ -105,6 +78,33 @@ class StarSpace(nn.Module):
         return l_batch, r_batch, neg_batch
     
 
+# class MarginRankingLoss(nn.Module):
+#     def __init__(self, margin=1., aggregate=torch.mean):
+#         super(MarginRankingLoss, self).__init__()
+#         self.margin = margin
+#         self.aggregate = aggregate
+
+#     def forward(self, positive_similarity, negative_similarity):
+#         return self.aggregate(
+#             torch.clamp(self.margin - positive_similarity + negative_similarity, min=0))
+    
+
+# class InnerProductSimilarity(nn.Module):
+#     def __init__(self):
+#         super(InnerProductSimilarity, self).__init__()
+
+#     def forward(self, a, b):
+#         # a => B x [n_a x] dim, b => B x [n_b x] dim
+
+#         if a.dim() == 2:
+#             a = a.unsqueeze(1)  # B x n_a x dim
+
+#         if b.dim() == 2:
+#             b = b.unsqueeze(1)  # B x n_b x dim
+
+#         return torch.bmm(a, b.transpose(2, 1))  # B x n_a x n_b
+
+    
 # class StarSpace_old(nn.Module):
 #     def __init__(self, d_embed, n_input, n_output, similarity, max_norm=10, aggregate=torch.sum):
 #         super(StarSpace, self).__init__()

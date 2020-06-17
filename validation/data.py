@@ -69,9 +69,9 @@ def make_matcher():
     ])
     return matcher
 
-def indeed_test_data(texts, lim, soc_n):
+def indeed_test_data(texts, lim, soc_n, use_gcs = False):
     """Make test data from indeed (pre-embedded)"""
-    indeed = get_indeed_texts(texts, use_gcs=True, nrows=lim)
+    indeed = get_indeed_texts(texts, use_gcs, nrows=lim)
     matcher = make_matcher()
     matches = matcher(indeed.reset_index()).set_index('index')
     return matches.content, get_soc_n(matches.code, soc_n), matches.index

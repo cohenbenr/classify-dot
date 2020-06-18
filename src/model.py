@@ -16,15 +16,35 @@ class StarSpace(nn.Module):
             self.embeddings = nn.Embedding(self.n_input, d_embed, max_norm=max_norm)
         else:
             self.embeddings = input_embedding
-            
+    
+    def get_positions(self,train):
+        """ Get the positions of every word.  Return list of list of tensors """
+        train_pos = []
+        for i,doc in enumerate(train): 
+            # For each document
+            sentences = doc.split('\t')
+            doc_positions = []
+            for s in sentences: 
+                # For each sentence
+                positions = []
+                s = s.split()
+                
+                for tok in s: 
+                    # For each word
+                    try:
+                        positions.append(self.vocab[tok])
+                    except KeyError:
+                        pass
+
+                doc_positions.append(torch.LongTensor(positions))
+
+            train_pos.append(doc_positions)
+        
+        return np.array(train_pos)
+    
     def embed_doc(self,d,normalize=False):
-        positions = []
-        for t in d:
-            try:
-                positions.append(self.vocab[t])
-            except KeyError:
-                pass
-        output = torch.sum(self.embeddings(torch.LongTensor(positions)),dim=0)
+        """ Takes a tensor of positions and embeds it """
+        output = torch.sum(self.embeddings(d),dim=0)
         output[output != output] = 0 #necessary for documents with all unseen vocabs
         
         if normalize:
@@ -36,17 +56,18 @@ class StarSpace(nn.Module):
         r_batch = []
         neg_batch = []
         
-        for i in range(len(docs)):
-            #Positive similarity
-            s = docs[i].split('\t') #sentences
+        for i,s in enumerate(docs):
+            #Positive similarity between sentences
             if (type(s) == str) or (len(s) <= 1): #only one sentence in s
                 a = s[0]
                 b = s[0]
             else:
-                a, b = np.random.choice(s, 2, False)
+                choices = np.random.choice(len(s), 2, False)
+                a = s[choices[0]]
+                b = s[choices[1]]
 
-            a = a.split()
-            b = b.split()
+#             a = a.split()
+#             b = b.split()
 
             a_emb = self.embed_doc(a)
             b_emb = self.embed_doc(b)
@@ -60,9 +81,10 @@ class StarSpace(nn.Module):
                 index = np.random.choice(len(docs))
                 
                 if index != i: #if it's not from the same document
-                    c = docs[index].split('\t')
-                    c = np.random.choice(c, 1)[0].split()
-                    #c_emb = self.embed_doc(c, normalize=True)
+                    neg_doc = docs[index]
+                    neg_choice = np.random.choice(len(neg_doc),1)[0]
+                    
+                    c = neg_doc[neg_choice]
                     c_emb = self.embed_doc(c)
                     negs.append(c_emb)
 

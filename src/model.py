@@ -68,9 +68,9 @@ class StarSpace(nn.Module):
 #         r_batch = []
 #         neg_batch = []
         
-        l_batch = torch.zeros((len(docs),self.d_embed)).to(self.device)
-        r_batch = torch.zeros((len(docs),self.d_embed)).to(self.device)
-        neg_batch = torch.zeros((len(docs),self.k_neg, self.d_embed)).to(self.device)
+        l_batch = torch.zeros((len(docs),self.d_embed),requires_grad=True).to(self.device)
+        r_batch = torch.zeros((len(docs),self.d_embed),requires_grad=True).to(self.device)
+        neg_batch = torch.zeros((len(docs),self.k_neg, self.d_embed),requires_grad=True).to(self.device)
         
         for i,s in enumerate(docs):
             #Positive similarity between sentences

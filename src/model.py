@@ -57,20 +57,18 @@ class StarSpace(nn.Module):
     def embed_doc(self,d,normalize=False):
         """ Takes a tensor of positions and embeds it """
         output = torch.sum(self.embeddings(d),dim=0)
-        output[output != output] = 0 #necessary for documents with all unseen vocabs
+        #output[output != output] = 0 #necessary for documents with all unseen vocabs
+        
+        output.to(self.device)
         
         if normalize:
             output = output / output.norm()
         return output
     
     def forward(self, docs):       
-#         l_batch = []
-#         r_batch = []
-#         neg_batch = []
-        
-        l_batch = torch.zeros((len(docs),self.d_embed),requires_grad=True).to(self.device)
-        r_batch = torch.zeros((len(docs),self.d_embed),requires_grad=True).to(self.device)
-        neg_batch = torch.zeros((len(docs),self.k_neg, self.d_embed),requires_grad=True).to(self.device)
+        l_batch = []
+        r_batch = []
+        neg_batch = []
         
         for i,s in enumerate(docs):
             #Positive similarity between sentences
@@ -85,12 +83,11 @@ class StarSpace(nn.Module):
             a_emb = self.embed_doc(a)
             b_emb = self.embed_doc(b)
 
-            l_batch[i,:] = a_emb
-            r_batch[i,:] = b_emb
+            l_batch.append(a_emb)
+            r_batch.append(b_emb)
 
             #Negative similarity
             negs = []
-            negs = torch.zeros((self.k_neg, self.d_embed)).to(self.device)
             num_negs = 0
             while num_negs < self.k_neg:
                 index = np.random.choice(len(docs))
@@ -102,10 +99,14 @@ class StarSpace(nn.Module):
                     c = neg_doc[neg_choice]
                     c_emb = self.embed_doc(c)
                     
-                    negs[num_negs,:] = c_emb
+                    negs.append(c_emb)
                     num_negs += 1
 
-            neg_batch[i,:,:] = negs
+            neg_batch.append(torch.stack(negs))
+        
+        l_batch = torch.stack(l_batch)
+        r_batch = torch.stack(r_batch)
+        neg_batch = torch.stack(neg_batch)
         
         l_batch = l_batch.unsqueeze(1)
         r_batch = r_batch.unsqueeze(1)

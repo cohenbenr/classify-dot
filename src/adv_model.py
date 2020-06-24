@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 import torch
 from torch import nn
@@ -80,10 +82,51 @@ class LogisticRegression(torch.nn.Module):
         return outputs
 
 
-class Discriminator():
-    def __init__(self, classifier, optimizer):
+class Discriminator(nn.Module):
+    def __init__(self, classifier, criterion, embedder, learning_rates=None):
+        super(Discriminator, self).__init__()
+        
         self.classifier = classifier
-        self.opt = opt
+        self.criterion = criterion
+        self.embedder = embedder
+        
+        if learning_rates is None:
+            learning_rates = [1e-2,1e-2]
+        self.opt = torch.optim.Adam([
+            {'params': self.embedder.weights.weight, 'lr': learning_rates[0]},
+            {'params': self.classifier.parameters(), 'lr': learning_rates[1]}
+        ])
+        
+        if torch.cuda.is_available():
+            self.device = 'cuda'
+        else:
+            self.device = 'cpu'
+        
+        self.classifier.to(self.device)
+        
+    def create_data(self, batch, dot):
+        idx = torch.tensor(np.random.choice(dot.shape[0], 100, False))
+        
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            disc_dot = dot[torch.nonzero(idx).detach().cpu()]
+        
+        dot_emb = [self.embedder.embed_doc(torch.cat(doc.tolist()[0])) for doc in disc_dot]
+        dot_emb = torch.stack(dot_emb).to(self.device)
+        
+        new_batch = [self.embedder.embed_doc(torch.cat(d)) for d in batch]
+        new_batch = torch.stack(new_batch)
+
+        disc_X = torch.cat([new_batch, dot_emb], 0).to(self.device)
+        disc_y = torch.cat([torch.zeros(100),torch.ones(100)],0).type(torch.LongTensor).to(self.device)
+        return disc_X, disc_y
+    
+    def forward(self, batch, dot):
+        X, y = self.create_data(batch,dot)
+        outputs = self.classifier(X)
+        # print(outputs.shape) # Something happened here where the shapes didn't match- keep an eye
+        
+        return self.criterion(outputs, y) * -1, outputs, y
 
 
 class StarSpaceAdv(nn.Module):

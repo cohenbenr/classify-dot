@@ -82,19 +82,16 @@ class LogisticRegression(torch.nn.Module):
         return outputs
 
 
+# +
 class Discriminator(nn.Module):
-    def __init__(self, classifier, criterion, embedder, learning_rates=None):
+    def __init__(self, classifier, embedder, lr=.01):
         super(Discriminator, self).__init__()
         
         self.classifier = classifier
-        self.criterion = criterion
         self.embedder = embedder
         
-        if learning_rates is None:
-            learning_rates = [1e-2,1e-2]
         self.opt = torch.optim.Adam([
-            {'params': self.embedder.weights.weight, 'lr': learning_rates[0]},
-            {'params': self.classifier.parameters(), 'lr': learning_rates[1]}
+            {'params': self.classifier.parameters(), 'lr': lr}
         ])
         
         if torch.cuda.is_available():
@@ -107,11 +104,13 @@ class Discriminator(nn.Module):
     def create_data(self, batch, dot):
         idx = torch.tensor(np.random.choice(dot.shape[0], 100, False))
         
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            disc_dot = dot[torch.nonzero(idx).detach().cpu()]
+#         with warnings.catch_warnings():
+#             warnings.simplefilter("ignore")
+#             disc_dot = dot[torch.nonzero(idx).detach().cpu()]
         
-        dot_emb = [self.embedder.embed_doc(torch.cat(doc.tolist()[0])) for doc in disc_dot]
+        disc_dot = dot[idx] 
+        
+        dot_emb = [self.embedder.embed_doc(torch.cat(doc)) for doc in disc_dot]
         dot_emb = torch.stack(dot_emb).to(self.device)
         
         new_batch = [self.embedder.embed_doc(torch.cat(d)) for d in batch]
@@ -123,11 +122,12 @@ class Discriminator(nn.Module):
     
     def forward(self, batch, dot):
         X, y = self.create_data(batch,dot)
-        outputs = self.classifier(X)
         # print(outputs.shape) # Something happened here where the shapes didn't match- keep an eye
         
-        return self.criterion(outputs, y) * -1, outputs, y
+        return self.classifier(X), y
 
+
+# -
 
 class StarSpaceAdv(nn.Module):
     def __init__(self, input_embedder, lr = .01, k_neg = 3):

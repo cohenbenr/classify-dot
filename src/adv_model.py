@@ -60,7 +60,7 @@ class Embedder():
 
         return np.array(train_pos)
 
-    def embed_doc(self,d,normalize=False):
+    def embed_doc(self,d,normalize=True):
         """ Takes a tensor of positions and embeds it """
         output = torch.sum(self.weights(d),dim=0)
         #output[output != output] = 0 #necessary for documents with all unseen vocabs
